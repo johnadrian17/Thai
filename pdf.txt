@@ -1,0 +1,120 @@
+using TaxFormFunction.Entities;
+using System;
+using TaxFormFunction.Interfaces.Services;
+using System.IO;
+using Microsoft.AspNetCore.Mvc;
+using iText.Kernel.Pdf;
+using iText.Layout.Element;
+using iText.Layout;
+using iText.Layout.Properties;
+using iText.Kernel.Colors;
+
+namespace TaxFormFunction.Services
+{
+    public class PdfService : IPdfService
+    {
+        public MemoryStream GeneratePdf(TaxForm taxForm)
+        {
+            var pdfStream = new MemoryStream();
+            using (var pdfWriter = new PdfWriter(pdfStream))
+            {
+                using (var pdfDocument = new PdfDocument(pdfWriter))
+                {
+                    var document = new Document(pdfDocument);
+
+                    // Adding title with specific font and color
+                    document.Add(new Paragraph("แบบแจ้งรายการเพื่อการหักลดหย่อน")
+                        .SetBold()
+                        .SetFontSize(18)
+                        .SetTextAlignment(TextAlignment.CENTER)
+                        .SetFontColor(ColorConstants.BLUE));
+                    document.Add(new Paragraph("Title: Notify a list of allowances deduction for use in calculating personal income tax.")
+                        .SetTextAlignment(TextAlignment.CENTER)
+                        .SetFontColor(ColorConstants.DARK_GRAY));
+
+                    // Create a table for aligned fields
+                    float[] columnWidths = {1, 3};
+                    Table table = new Table(UnitValue.CreatePercentArray(columnWidths)).UseAllAvailableWidth();
+
+                    // Add company and date in bold and different color
+                    table.AddCell(new Cell().Add(new Paragraph("บริษัท:").SetBold().SetFontColor(ColorConstants.RED)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.Company}").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph("วันที่:").SetBold().SetFontColor(ColorConstants.RED)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.Date}").SetFontColor(ColorConstants.BLACK)));
+
+                    // Add employee details
+                    table.AddCell(new Cell().Add(new Paragraph("ชื่อ - นามสกุล:").SetBold().SetFontColor(ColorConstants.RED)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.EmployeeName}").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph("รหัสพนักงาน:").SetBold().SetFontColor(ColorConstants.RED)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.EmployeeId}").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph("แผนก:").SetBold().SetFontColor(ColorConstants.RED)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.Department}").SetFontColor(ColorConstants.BLACK)));
+
+                    // Status and description
+                    table.AddCell(new Cell().Add(new Paragraph("Status:").SetBold().SetFontColor(ColorConstants.RED)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.Status}").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph("Status Description:").SetBold().SetFontColor(ColorConstants.RED)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.StatusDesc}").SetFontColor(ColorConstants.BLACK)));
+
+                    // Child Allowance Section
+                    table.AddCell(new Cell(1, 2).Add(new Paragraph("Child Allowance:").SetBold().SetFontColor(ColorConstants.RED)));
+                    table.AddCell(new Cell().Add(new Paragraph("Legitimate Child:").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.ChildAllowance}").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph("Amount:").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.AmtChildAllowance}").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph("Child in After 2018:").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.ChildInAfter2018}").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph("Amount:").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.AmtChildInAfter2018}").SetFontColor(ColorConstants.BLACK)));
+
+                    // Parental Care Section
+                    table.AddCell(new Cell(1, 2).Add(new Paragraph("Parental Care:").SetBold().SetFontColor(ColorConstants.RED)));
+                    table.AddCell(new Cell().Add(new Paragraph("Taxpayer's Father:").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.ParentalCareTaxpayerFather}").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph("Amount:").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.AmtParentalCareTaxpayerFather}").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph("Taxpayer's Mother:").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.ParentalCareTaxpayerMother}").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph("Amount:").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.AmtParentalCareTaxpayerMother}").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph("Spouse's Father:").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.ParentalCareSpouseFather}").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph("Amount:").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.AmtParentalCareSpouseFather}").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph("Spouse's Mother:").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph("Amount:").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.ParentalCareSpouseMother}").SetFontColor(ColorConstants.BLACK)));
+
+                    // Disabled Person Support Section
+                    table.AddCell(new Cell(1, 2).Add(new Paragraph("Disabled Person Support:").SetBold().SetFontColor(ColorConstants.RED)));
+                    table.AddCell(new Cell().Add(new Paragraph("Support:").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.DisabledPersonSupport}").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph("Amount:").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.AmtDisabledPersonSupport}").SetFontColor(ColorConstants.BLACK)));
+
+                    // Health Insurance Section
+                    table.AddCell(new Cell(1, 2).Add(new Paragraph("Health Insurance:").SetBold().SetFontColor(ColorConstants.RED)));
+                    table.AddCell(new Cell().Add(new Paragraph("Taxpayer's Father:").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.HealthInsuranceTaxpayerFather}").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph("Taxpayer's Mother:").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.HealthInsuranceTaxpayerMother}").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph("Spouse's Father:").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.HealthInsuranceTaxpayerSpouseFather}").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph("Spouse's Mother:").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.HealthInsuranceTaxpayerSpouseMother}").SetFontColor(ColorConstants.BLACK)));
+
+                    // Insurance and Savings Section
+                    table.AddCell(new Cell().Add(new Paragraph("Life Insurance Paid:").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.LifeInsurancePaid}").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph("Pension Insurance Paid:").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.PensionInsurancePaid}").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph("RMF:").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.Rmf}").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph("SSF:").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.Ssf}").SetFontColor(ColorConstants.BLACK)));
+
+                    // Previous Company Info Section
+                    table.AddCell(new Cell(1, 2).Add(new Paragraph("Previous Company Info:").SetBold().SetFontColor(ColorConstants.RED)));
+                    table.AddCell(new Cell().Add(new Paragraph("Taxable Income Earned:").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph($"{taxForm.TaxableIncomeEarnedPrevComp}").SetFontColor(ColorConstants.BLACK)));
+                    table.AddCell(new Cell().Add(new Paragraph("Withholding Tax:
